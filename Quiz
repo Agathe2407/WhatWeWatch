@@ -1,0 +1,249 @@
+<div id="player-info-container"></div>
+<div id="question-container"></div>
+<div id="answers-container"></div>
+<div id="result-container" style="display: none;"></div>
+
+<script>
+// Liste des émotions possibles avec leurs emojis
+const emotions = [
+  { name: "Fatigué", emoji: "😴" },
+  { name: "Stressé", emoji: "😬" },
+  { name: "Enthousiaste", emoji: "😄" },
+  { name: "Détendu", emoji: "😌" },
+  { name: "Heureux", emoji: "😊" }
+];
+
+// Liste de films, séries et documentaires recommandés
+const movieLibrary = [
+  { title: "Mamma Mia! (2008)", type: "film", genre: "Comédie", ending: "Fin heureuse", ambiance: "Festif" },
+  { title: "Fast & Furious 7 (2015)", type: "film", genre: "Action", ending: "Peu importe", ambiance: "Entre amis" },
+  { title: "The Notebook (2004)", type: "film", genre: "Romance", ending: "Fin heureuse", ambiance: "Cosy" },
+  { title: "The Sixth Sense (1999)", type: "film", genre: "Horreur", ending: "Twist imprévisible", ambiance: "Entre amis" },
+  { title: "Coco (2017)", type: "film", genre: "Animation", ending: "Fin heureuse", ambiance: "En famille" },
+  { title: "Stranger Things (2016)", type: "série", genre: "Science-fiction", ending: "Twist imprévisible", ambiance: "Entre amis" },
+  { title: "The Mandalorian (2019)", type: "série", genre: "Science-fiction", ending: "Peu importe", ambiance: "En famille" },
+  { title: "Friends (1994)", type: "série", genre: "Comédie", ending: "Fin heureuse", ambiance: "Festif" },
+  { title: "Breaking Bad (2008)", type: "série", genre: "Drame", ending: "Twist imprévisible", ambiance: "Entre amis" },
+  { title: "The Social Dilemma (2020)", type: "documentaire", genre: "Société", ending: "Peu importe", ambiance: "En famille" },
+  { title: "13th (2016)", type: "documentaire", genre: "Société", ending: "Peu importe", ambiance: "Entre amis" }
+];
+
+// Liste de questions avec des défis intégrés
+const questions = [
+  { question: "Quel genre de film mettrait tout le monde d'accord ?", options: ["Comédie", "Action", "Romance", "Animation"], challenge: "Le joueur le plus jeune doit imiter une scène d'un film correspondant au genre choisi !" },
+  { question: "Quelle durée préféreriez-vous pour ce soir ?", options: ["Court-métrage", "Épisode de série", "Long métrage", "Documentaire"] },
+  { question: "Quel type de fin serait idéal pour ce groupe ?", options: ["Fin heureuse", "Twist imprévisible", "Peu importe"] },
+  { question: "Le joueur ayant vu le plus de films doit citer trois genres de films. Choisissez celui qui vous attire le plus !", options: ["Action", "Horreur", "Comédie", "Science-fiction"] },
+  { question: "Quel mood décrit le mieux l'ambiance de la soirée ?", options: ["Festif", "Cosy", "En famille", "Entre amis"], challenge: "Celui qui a organisé la soirée doit chanter une chanson en lien avec le mood choisi !" },
+  { question: "Le joueur ayant vu le moins de films doit choisir une décennie ; trouvez un film de cette époque qui plaira à tout le monde !", options: ["Années 80", "Années 90", "Années 2000", "Années 2010", "Années 2020"] }
+];
+
+// Variables pour le quiz
+let currentQuestionIndex = 0;
+let answersHistory = [];
+let players = [];
+let chosenType = "film"; // Valeur par défaut à "film"
+
+// Démarrer la collecte d'infos joueurs
+askPlayersInfo();
+
+// Fonction pour demander et gérer les informations des joueurs
+function askPlayersInfo() {
+  const numPlayers = parseInt(prompt("Combien de joueurs participent à ce quiz ?"));
+
+  // Vérifier que le nombre de joueurs est valide
+  if (numPlayers && numPlayers > 0) {
+    for (let i = 0; i < numPlayers; i++) {
+      players.push({ name: `Joueur ${i + 1}`, mood: null });
+    }
+    showMoodSelection();
+  } else {
+    alert("Veuillez entrer un nombre valide de joueurs.");
+    askPlayersInfo(); // Relance la fonction si l'entrée est invalide
+  }
+}
+
+// Fonction pour afficher la sélection d'humeur pour chaque joueur
+function showMoodSelection() {
+  const playerInfoContainer = document.getElementById("player-info-container");
+  playerInfoContainer.innerHTML = "<h2>Sélection d'humeur</h2>";
+
+  players.forEach((player, index) => {
+    const playerMoodContainer = document.createElement("div");
+    playerMoodContainer.innerHTML = `<p>${player.name}, comment te sens-tu aujourd'hui ?</p>`;
+    
+    emotions.forEach(emotion => {
+      const button = document.createElement("button");
+      button.innerHTML = emotion.emoji;
+      button.classList.add("emotion-button");
+      button.onclick = () => {
+        players[index].mood = emotion;
+        checkAllPlayersSelected();
+      };
+      playerMoodContainer.appendChild(button);
+
+      // Ajout de la légende sous chaque emoji
+      const legend = document.createElement("p");
+      legend.textContent = emotion.name;
+      legend.style.fontSize = "12px";
+      legend.style.marginTop = "5px";
+      playerMoodContainer.appendChild(legend);
+    });
+    
+    playerInfoContainer.appendChild(playerMoodContainer);
+  });
+}
+
+// Fonction pour vérifier si tous les joueurs ont sélectionné leur humeur
+function checkAllPlayersSelected() {
+  if (players.every(player => player.mood !== null)) {
+    displayPlayerMoods();
+    displayQuestion();
+  }
+}
+
+// Afficher les humeurs des joueurs avant de commencer le quiz
+function displayPlayerMoods() {
+  const playerInfoContainer = document.getElementById("player-info-container");
+  playerInfoContainer.innerHTML = "<h2>Profils des joueurs</h2>";
+
+  players.forEach(player => {
+    playerInfoContainer.innerHTML += `<p>${player.name} - Humeur: ${player.mood.emoji} ${player.mood.name}</p>`;
+  });
+  playerInfoContainer.innerHTML += "<hr><p>Le quiz va commencer !</p>";
+}
+
+// Fonction pour afficher la question actuelle et ses options
+function displayQuestion() {
+  const question = questions[currentQuestionIndex];
+  const questionContainer = document.getElementById("question-container");
+  const answersContainer = document.getElementById("answers-container");
+
+  questionContainer.innerHTML = `<p>${question.question}</p>`;
+  answersContainer.innerHTML = "";
+
+  question.options.forEach(option => {
+    const answerButton = document.createElement("button");
+    answerButton.textContent = option;
+    answerButton.classList.add("answer-button");
+    answerButton.onclick = () => handleAnswer(option);
+    answersContainer.appendChild(answerButton);
+  });
+
+  if (question.challenge) {
+    const challengeText = document.createElement("p");
+    challengeText.textContent = question.challenge;
+    challengeText.style.color = "orange";
+    questionContainer.appendChild(challengeText);
+  }
+}
+
+// Gérer la réponse et passer à la question suivante
+function handleAnswer(answer) {
+  if (currentQuestionIndex === 1) {
+    // Mettre à jour le type choisi basé sur la réponse
+    if (answer === "Épisode de série") {
+      chosenType = "série";
+    } else if (answer === "Documentaire") {
+      chosenType = "documentaire";
+    } else {
+      chosenType = "film";
+    }
+  }
+  answersHistory.push(answer);
+  currentQuestionIndex++;
+  if (currentQuestionIndex < questions.length) {
+    displayQuestion();
+  } else {
+    displayRecommendation();
+  }
+}
+
+// Fonction pour recommander un film, une série ou un documentaire en fonction des réponses
+function recommanderFilm(genre, fin, ambiance) {
+  const exactMatch = movieLibrary.find(movie => movie.genre === genre && movie.ending === fin && movie.ambiance === ambiance && movie.type === chosenType);
+  if (exactMatch) {
+    return `${exactMatch.title} (${exactMatch.type}) - Genre: ${exactMatch.genre}, Fin: ${exactMatch.ending}, Ambiance: ${exactMatch.ambiance}`;
+  }
+
+  // Recherche de correspondances partielles
+  const partialMatch = movieLibrary.filter(movie => movie.genre === genre || movie.ending === fin || movie.ambiance === ambiance);
+  if (partialMatch.length > 0) {
+    const matchedMovie = partialMatch[Math.floor(Math.random() * partialMatch.length)];
+    return `${matchedMovie.title} (${matchedMovie.type}) - Genre: ${matchedMovie.genre}, Fin: ${matchedMovie.ending}, Ambiance: ${matchedMovie.ambiance}`;
+  }
+
+  return "Désolé, aucune recommandation précise. Essayez une autre combinaison !";
+}
+
+// Affichage du résultat final
+function displayRecommendation() {
+  const genre = answersHistory[0];
+  const ending = answersHistory[2];
+  const ambiance = answersHistory[4];
+
+  const resultContainer = document.getElementById("result-container");
+  resultContainer.style.display = "block";
+  resultContainer.innerHTML = `<h2>Votre recommandation :</h2><p>${recommanderFilm(genre, ending, ambiance)}</p>`;
+
+  // Ajouter un bouton pour faire d'autres choix
+  const otherChoicesButton = document.createElement("button");
+  otherChoicesButton.textContent = "Autres choix";
+  otherChoicesButton.classList.add("other-choice-button");
+  otherChoicesButton.onclick = () => displayRecommendation();  // Afficher un autre film
+  resultContainer.appendChild(otherChoicesButton);
+}
+
+// Styles
+const style = document.createElement("style");
+style.innerHTML = `
+  .emotion-button,
+  .answer-button {
+    background-color: #F58AA0;
+    color: white;
+    border-radius: 25px;
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .emotion-button:hover,
+  .answer-button:hover {
+    background-color: #E74680;
+  }
+
+  .other-choice-button {
+    background-color: #4CAF50; /* Vert */
+    color: white;
+    border-radius: 25px;
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .other-choice-button:hover {
+    background-color: #45a049; /* Vert plus foncé au survol */
+  }
+
+  #result-container {
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    color: #333;
+    margin-top: 20px;
+  }
+
+  #result-container p {
+    color: green;
+  }
+
+  #question-container {
+    margin-top: 20px;
+  }
+`;
+document.head.appendChild(style);
+
+</script>
